@@ -20,5 +20,15 @@
     <file>res/icon_cat.png</file>
     <file>res/icon_chat.png</file>
     <file>res/数据质控.png</file>
+    <file>res/配置中心.png</file>
+    <file>res/融合分析.png</file>
+    <file>res/数据标注.png</file>
+    <file>res/智能发布.png</file>
+    <file>res/工作状态流.png</file>
+    <file>res/user.png</file>
+    <file>res/closev.png</file>
+    <file>res/minus.png</file>
+    <file>res/confirm.png</file>
+    <file>res/导入.png</file>
   </qresource>
 </RCC>

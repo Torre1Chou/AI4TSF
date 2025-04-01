@@ -80,7 +80,8 @@ Leddam_hypers = dict(
 
 model_hypers = {
     'ARIMA': arima_hypers,
-    'DeepSeek':{'model':'deepseek-ai/DeepSeek-R1-Distill-Llama-8B',**promptcast_hypers},
+    #'DeepSeek':{'model':'deepseek-ai/DeepSeek-R1-Distill-Qwen-14B',**promptcast_hypers},
+    'DeepSeek':{'model':'deepseek-ai/DeepSeek-V2.5',**promptcast_hypers},
     'LLMTime GPT-3.5': {'model': 'gpt-3.5-turbo-instruct', **gpt3_hypers},
     'PromptCast GPT-3': {'model': 'gpt-3.5-turbo-instruct', **promptcast_hypers},
     'timeGPT': {'model': 'timegpt-1-long-horizon', **timeGPT_hypers},
@@ -111,7 +112,7 @@ model_predict_fns = {
 
 
 #设置模型预测函数
-def common_predict_fn(origin_data, predict_data, model_fn, hyper,n_samples, verbose=False, parallel=True, n_train=None, n_val=None):
+def common_predict_fn(choosecolumn,origin_data, predict_data, model_fn, hyper,n_samples, verbose=False, parallel=True, n_train=None, n_val=None):
     """
     Common function for getting predictions from a model.
     """
@@ -122,6 +123,12 @@ def common_predict_fn(origin_data, predict_data, model_fn, hyper,n_samples, verb
     if not isinstance(origin_data, list):
         origin_data = [origin_data]
         predict_data = [predict_data]
+
+    # #打印修改类型后的origin_data内容
+    # print("载入预测函数的origin_data:",origin_data)
+    
+    #打印参数内容
+    print("载入预测函数的参数内容：",hyper)
 
     if n_val is None:
         n_val = len(origin_data)
@@ -180,10 +187,15 @@ def common_predict_fn(origin_data, predict_data, model_fn, hyper,n_samples, verb
     
     
 
-
-
-    out= model_fn(origin_data, predict_data, **best_hyper, num_samples=n_samples, n_train=n_train, parallel=parallel)
+    #out= model_fn(choosecolumn,origin_data, predict_data, **best_hyper, num_samples=n_samples, n_train=n_train, parallel=parallel)
     
+    # 根据模型名称决定是否传入 choosecolumn 参数
+    if model_fn == get_arima_predictions_data:
+        out = model_fn(origin_data, predict_data, **best_hyper, num_samples=n_samples, n_train=n_train, parallel=parallel)
+    else:
+        out = model_fn(choosecolumn, origin_data, predict_data, **best_hyper, num_samples=n_samples, n_train=n_train, parallel=parallel)
+
+
     out['best_hyper']=convert_to_dict(best_hyper)
     return out
 
@@ -195,7 +207,7 @@ import openai
 #可选用openai的API还是deepseek的API
 
 
-def get_predictions(models,API_KEY,origin_data,predict_data, hypers):
+def get_predictions(models,choosecolumn,API_KEY,origin_data,predict_data, hypers):
     """
     Get predictions from the specified models.
     """
@@ -244,9 +256,11 @@ def get_predictions(models,API_KEY,origin_data,predict_data, hypers):
         #     origin_single = origin_data[column]
         #     predict_single = predict_data[column]
 
+        #打印选定的参数
+        print("选定的参数：",model_hyper)
         
 #parrallel的正负对预测结果的影响没搞懂，后续要调整
-        result = common_predict_fn(origin_data, predict_data, predict_fn, model_hyper,n_samples, verbose=False, parallel=True)
+        result = common_predict_fn(choosecolumn,origin_data, predict_data, predict_fn, model_hyper,n_samples, verbose=False, parallel=True)
         #predict_results = result
     else:
         raise ValueError(f"Model '{models}' not found in model_predict_fns")
@@ -268,4 +282,3 @@ def get_predictions(models,API_KEY,origin_data,predict_data, hypers):
     
     return predict_results
 
-#predict_data的格式不对，要改和original_data对齐

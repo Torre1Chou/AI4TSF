@@ -124,6 +124,9 @@ def _new_arima_fit(self, series, future_covariates=None):
 
 #     return out_dict
 
+
+
+
 def get_arima_predictions_data(train, test, p=12, d=1, q=0, num_samples=100, **kwargs):
     """
     获取ARIMA模型的预测数据，支持多组训练和测试数据。
@@ -141,6 +144,13 @@ def get_arima_predictions_data(train, test, p=12, d=1, q=0, num_samples=100, **k
     """
     # 确保num_samples至少为1
     num_samples = max(num_samples, 1)
+
+    #打印传入的train和test数据
+    print(f"train: {train}, test: {test}")
+
+    # # 调整train和test
+    # train = _get_first_numeric(train)
+    # test = _get_first_numeric(test)
 
     # 如果train和test不是列表，将其转换为列表形式
     if not isinstance(train, list):

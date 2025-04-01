@@ -3,7 +3,7 @@ import openai
 
 
 #接入聊天机器人
-def chatbot(model,ask):
+def chatbot(model,ask,field):
     #设置API_KEY
     deepseek_api='sk-wdkwczxanmwevdpenbguhirxnjxpoyvoaqxrekhftvuizsld'
     gpt_api='sk-J4QMUqSVow9TsSdAIABKOIclpsFSpyPh2PJXccvbzBEepliv'
@@ -12,6 +12,8 @@ def chatbot(model,ask):
     deepseek_base='https://api.siliconflow.cn/v1'
     gpt_base='https://chatapi.littlewheat.com/v1'
 
+    #数据的领域
+    datafield = field
 
 #这里需要设置选择不同的聊天助手
     if model == 'DeepSeek':
@@ -39,6 +41,7 @@ def chatbot(model,ask):
     #根据传入的模型获取对应的模型名称
     if model == 'DeepSeek':
         model_name = 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B'
+        #model_name = 'deepseek-ai/DeepSeek-R1-Distill-Qwen-14B'
     elif model == 'GPT-3.5':
         model_name = 'gpt-3.5-turbo'
     else:
@@ -49,7 +52,7 @@ def chatbot(model,ask):
     completion = openai.ChatCompletion.create(
         model= model_name,
         messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": f"你是一个数据分析与处理专家。文件中的数据序列来自领域{datafield}，你需要分析文件中的数据内容，并以中文回答数据特征、发展趋势以及可能的洞察。"},
             {"role": "user", "content": current_text},
         ]
     )
@@ -66,7 +69,7 @@ def read_file(file_path):
         return file.read()
 
 #需要把载入的文件远程发送给聊天机器人    
-def chatbot_file(model,file_path):
+def chatbot_file(model,file_path,field):
     #设置API_KEY
     deepseek_api='sk-mbckewojnfssrriqyaipcqorevtzaqrnrbfxhfoxoamdyxix'
     gpt_api='sk-J4QMUqSVow9TsSdAIABKOIclpsFSpyPh2PJXccvbzBEepliv'
@@ -91,10 +94,12 @@ def chatbot_file(model,file_path):
     openai.api_key = current_api
     openai.api_base = api_base
 
+    datafield = field
 
     #根据传入的模型获取对应的模型名称
     if model == 'DeepSeek':
-        model_name = 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B'
+        #model_name = 'deepseek-ai/DeepSeek-R1-Distill-Llama-8B'
+        model_name = 'deepseek-ai/DeepSeek-R1-Distill-Qwen-14B'
     elif model == 'GPT-3.5':
         model_name = 'gpt-3.5-turbo'
     else:
@@ -104,7 +109,7 @@ def chatbot_file(model,file_path):
     completion = openai.ChatCompletion.create(
         model=model_name,
         messages=[
-            {"role": "system", "content": "你是一个数据分析与处理专家。你需要分析文件中的数据内容，并以中文回答数据特征、发展趋势以及可能的洞察。"},
+            {"role": "system", "content": f"你是一个数据分析与处理专家。文件中的数据序列来自领域{datafield},你需要分析文件中的数据内容，并以中文回答数据特征、发展趋势以及可能的洞察。"},
             {"role": "user", "content": f"请分析以下数据内容，并总结数据特征、发展趋势以及可能的洞察：\n{current_text}"},
         ]
     )

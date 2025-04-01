@@ -27,7 +27,7 @@ from draw import ACFFigureCanvas,DecomFigureCanvas
 from bayes_opt import BayesianOptimization
 
 
-from statsmodels.tsa.stattools import adfuller, kpss
+from statsmodels.tsa.stattools import adfuller, kpss, acf, pacf
 import statsmodels.api as sm
 from statsmodels.tsa.seasonal import seasonal_decompose,STL
 
@@ -50,7 +50,20 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         super().__init__()
         self.ui=Ui_MainWindow()
         self.ui.setupUi(self)
+
+        self.setWindowTitle("AI4TSF")
+        self.setWindowIcon(QIcon(":/3/res/数据质控.png"))
         
+        #隐藏窗口自带的标题栏
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        #设置窗口背景透明
+        self.setAttribute(Qt.WA_TranslucentBackground)
+
+
+        #基础控件功能设置
+        self.ui.pushButton_minus.clicked.connect(self.minusUI)
+        self.ui.pushButton_closev.clicked.connect(self.closeUI)
+
         #设置布局管理器
         data_layout = QtWidgets.QVBoxLayout(self.ui.widget_data_image)
         self.ui.widget_data_image.setLayout(data_layout)
@@ -157,7 +170,8 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         #初始化选择变量的combobox
         self.ui.comboBoxChoosecolumn.addItems([])
 
-        #绘制原始图像
+        #数据领域关键词加载
+        self.dataField = ''
 
 
         #数据填补
@@ -214,6 +228,12 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         self.ui.textEditRolling.setReadOnly(True)
         #fft阈值输入框设置只读
         self.ui.textEditFFT.setReadOnly(True)
+
+        #预测数据保存路径
+        self.savePath = ''
+        
+        #路径文本输入框显示默认路径
+        self.ui.textEditSavePath.setPlainText('D:/SaveCSV/predicted_data.csv')
 
         #AI聊天部分
 
@@ -302,10 +322,142 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         # 文件拖拽之后，调用 load_csv_file 函数
         self.load_csv_file(file.path)
         
+    #把界面最小化
+    def minusUI(self):
+        self.showMinimized()
+
+    #关闭页面
+    def closeUI(self):
+        self.close()
 
     def switch_page(self, index):
             """切换页面的函数"""
             self.ui.stackedWidget.setCurrentIndex(index)
+
+    # #图片在加载时的动画效果
+    # def show_loading_message(self, message, chart_view):
+    #     """显示加载提示，关联到特定chart view"""
+    #     # 先隐藏之前的加载提示
+    #     self.hide_loading_message()
+        
+    #     # 创建加载标签，父组件设置为chart view
+    #     self.loading_label = QtWidgets.QLabel(chart_view)
+    #     self.loading_label.setText(message)
+    #     self.loading_label.setAlignment(QtCore.Qt.AlignCenter)
+        
+    #     # 设置样式
+    #     self.loading_label.setStyleSheet("""
+    #         QLabel {
+    #             background-color: rgba(255, 255, 255, 220);
+    #             border: 2px solid #cccccc;
+    #             border-radius: 10px;
+    #             padding: 20px;
+    #             font-size: 16px;
+    #             min-width: 200px;
+    #             min-height: 100px;
+    #         }
+    #     """)
+        
+    #     # 添加gif动画
+    #     loading_gif_path = ":/res/gif/loading_circle.gif"  # Qt资源路径
+    #     if QtCore.QFile.exists(loading_gif_path):
+    #         self.movie = QtGui.QMovie(loading_gif_path)
+    #         if self.movie.isValid():
+    #             self.loading_label.setMovie(self.movie)
+    #             self.movie.setCacheMode(QtGui.QMovie.CacheAll)
+    #             self.movie.start()
+        
+    #     # 使用布局管理器确保居中
+    #     self.loading_label.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+    #     layout = QtWidgets.QVBoxLayout(chart_view)
+    #     layout.addWidget(self.loading_label, 0, QtCore.Qt.AlignCenter)
+    #     chart_view.setLayout(layout)
+        
+        
+    #     # 显示在最上层
+    #     self.loading_label.raise_()
+    #     self.loading_label.show()
+
+    def show_loading_message(self, message, chart_view):
+        """显示加载提示，确保每次都能正常显示"""
+        # 立即隐藏之前的加载提示
+        self.hide_loading_message()
+        
+        # 创建新的加载标签（不设置父组件）
+        self.loading_label = QtWidgets.QLabel()
+        self.loading_label.setText(message)
+        self.loading_label.setAlignment(QtCore.Qt.AlignCenter)
+        
+        # 设置样式
+        self.loading_label.setStyleSheet("""
+            QLabel {
+                background-color: rgba(255, 255, 255, 220);
+                border: 2px solid #cccccc;
+                border-radius: 10px;
+                padding: 20px;
+                font-size: 16px;
+                font-family: 'SimHei';
+                min-width: 200px;
+                min-height: 100px;
+            }
+        """)
+        
+        # 加载动画资源
+        loading_gif_path = ":/res/gif/loading_circle.gif"
+        if QtCore.QFile.exists(loading_gif_path):
+            self.movie = QtGui.QMovie(loading_gif_path)
+            if self.movie.isValid():
+                self.movie.setCacheMode(QtGui.QMovie.CacheAll)
+                self.loading_label.setMovie(self.movie)
+                self.movie.start()
+        
+        # 创建覆盖层并添加到chart_view
+        self.loading_overlay = QtWidgets.QWidget(chart_view)
+        self.loading_overlay.setStyleSheet("background-color: transparent;")
+        self.loading_overlay.setGeometry(0, 0, chart_view.width(), chart_view.height())
+        
+        # 使用布局确保居中
+        layout = QtWidgets.QVBoxLayout(self.loading_overlay)
+        layout.addWidget(self.loading_label, 0, QtCore.Qt.AlignCenter)
+        self.loading_overlay.setLayout(layout)
+        
+        # 显示在最上层
+        self.loading_overlay.raise_()
+        self.loading_overlay.show()
+        
+        # 强制立即更新UI
+        QtWidgets.QApplication.processEvents()
+
+
+    def hide_loading_message(self):
+        """隐藏加载提示"""
+        try:
+            # 停止并删除动画
+            if hasattr(self, 'movie'):
+                movie = getattr(self, 'movie', None)
+                if movie:
+                    movie.stop()
+                    movie.deleteLater()
+                delattr(self, 'movie')
+            
+            # 删除标签
+            if hasattr(self, 'loading_label'):
+                label = getattr(self, 'loading_label', None)
+                if label:
+                    label.deleteLater()
+                delattr(self, 'loading_label')
+
+            # 删除覆盖层
+            if hasattr(self, 'loading_overlay'):
+                overlay = getattr(self, 'loading_overlay', None)
+                if overlay:
+                    overlay.deleteLater()
+                delattr(self, 'loading_overlay')  
+        except Exception as e:
+            print(f"隐藏加载提示时出错: {e}")
+        finally:
+            # 确保处理所有待处理事件
+            QtWidgets.QApplication.processEvents()
        
     ###############################################################
     #以下是数据处理部分
@@ -348,15 +500,29 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         #减去时间列
         #self.ui.comboBoxChoosecolumn.removeItem(0)
 
-        #打印原始数据长度
-        print("1原始数据长度：",len(self.original_data))
+        #提取数据关键词
+        self.dataField = self.ui.textEditDataField.toPlainText().strip()
+        print(f"提取的数据关键词: {self.dataField}")
 
-        # 调用 plot_muldata 函数绘制多变量数据
-        plot_muldata(self.original_chart, self.original_data.index, y_data_dict, "Original Data", self.x_label, self.y_label)
+        # 显示"正在绘图中"提示，关联到chart
+        self.show_loading_message("正在绘图中...", self.original_chart_view)
+        
+        # 强制界面更新
+        QtWidgets.QApplication.processEvents()
 
-        # # 把文件内容发送给聊天机器人
-        # curr_model = 'DeepSeek'
-        # response = chatbot_file(curr_model, self.file_path)
+        
+        try:
+            # 调用 plot_muldata 函数绘制多变量数据
+            plot_muldata(self.original_chart, self.original_data.index, y_data_dict, "Original Data", self.x_label, self.y_label)
+        finally:
+            # 绘图完成后隐藏提示
+            self.hide_loading_message()
+
+#为了节约时间先把机器人交互部分注释掉
+        # # # 把文件内容发送给聊天机器人
+        # curr_model = self.ui.comboBoxChatModel.currentText()
+
+        # response = chatbot_file(curr_model, self.file_path,self.dataField)
 
         # # 把聊天机器人的回复生成气泡消息
         # bubble_message = BubbleMessage(response, self.iconChat, Type=MessageType.Text, is_send=False)
@@ -450,9 +616,9 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
             # 重新索引并填充缺失值
             self.original_data = self.original_data.reindex(full_index)
 
+        old_data = self.original_data.copy()
 
-        #打印原始数据长度
-        print("原始数据长度：",len(self.original_data))
+
 
         #根据数据特征选择插值方法
         interpolated_method = self.ui.comboBoxInterpolate.currentText()
@@ -462,20 +628,58 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         #更新数据
         self.original_data = interpolated_data
 
-       
+        # 显示"正在绘图中"提示，关联到_chart
+        self.show_loading_message("正在绘图中...", self.interpolate_chart_view)
 
         # 准备 y 数据字典
         y_data_dict = {column: self.original_data[column] for column in self.original_data.columns}
 
-
-        #绘制插值后的数据
-        plot_muldata(self.interpolate_chart, self.original_data.index, y_data_dict, "Interpolated Data", self.x_label, self.y_label)
-
+        # 把插值前后数据信息打印到文本框中
+        self.ui.textEditInformation.setHtml(
+            "<h3 style='color: #1E90FF; font-family: 黑体;'>=== 插值前后数据对比 ===</h3>"
+            "<p style='color: #1E90FF; font-family: 黑体;'>插值前数据摘要：</p>"
+            f"<p style='color: #FFA500; font-family: 黑体;'>{old_data.describe().to_html()}</p>"
+            "<p style='color: #1E90FF; font-family: 黑体;'>插值后数据摘要：</p>"
+            f"<p style='color: #FFA500; font-family: 黑体;'>{self.original_data.describe().to_html()}</p>"
+        )
         
+
+        try:
+            #绘制插值后的数据
+            plot_muldata(self.interpolate_chart, self.original_data.index, y_data_dict, "Interpolated Data", self.x_label, self.y_label)
+
+        finally:
+            # 绘图完成后隐藏提示
+            self.hide_loading_message()
+
+#为了节约时间先把机器人交互部分注释掉
+        # # 生成简短的插值结果摘要
+        # summary_before = old_data.describe()
+        # summary_after = interpolated_data.describe()
+
+
+        # #把插值处理的结果封装成气泡消息发送给聊天机器人
+        # message = f"数据插值处理完成，插值方法为 {interpolated_method}，\n插值前数据摘要：\n{summary_before}\n插值后数据摘要：\n{summary_after}，根据前后数据摘要对比分析插值方法带来的影响。"
+
+
+        # curr_model = self.ui.comboBoxChatModel.currentText()
+
+        # response = chatbot(curr_model,message,self.dataField)
+
+        # #把聊天机器人的回复生成气泡消息
+        # bubble_message = BubbleMessage(response, self.iconChat, Type=MessageType.Text, is_send=False)
+        # self.chat_ui.add_message_item(bubble_message)
+
 
     #对数据进行平滑去噪处理
     def smooth_csv_data(self):
         #进行rolling平均去噪
+
+        # 显示"正在绘图中"提示，关联到chart
+        self.show_loading_message("正在绘图中...", self.rolling_chart_view)
+
+        # 强制界面更新
+        QtWidgets.QApplication.processEvents()
 
         #贝叶斯优化函数
         def objective_function(window_size):
@@ -516,14 +720,25 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         # 准备 y 数据字典
         y_data_dict = {column: self.original_data[column] for column in self.original_data.columns}
 
-        #self.original_data = smoothed_data
-        #plot_muldata(self.denoised_chart, self.original_data.index, y_data_dict, "Smoothed Data", self.x_label, self.y_label)
-        plot_muldata(self.rolling_chart, self.original_data.index, y_data_dict, "Rolling Data", self.x_label, self.y_label)
 
+        
+
+        try:
+            plot_muldata(self.rolling_chart, self.original_data.index, y_data_dict, "Rolling Data", self.x_label, self.y_label)
+        finally:
+            # 绘图完成后隐藏提示
+            self.hide_loading_message()
         
 
     #对数据进行傅里叶去噪
     def Denoise_csv_data(self):
+
+        # 显示"正在绘图中"提示，关联到chart
+        self.show_loading_message("正在绘图中...", self.fft_chart_view)
+
+
+        # 强制界面更新
+        QtWidgets.QApplication.processEvents()
 
         def fourier_denoise(series, threshold=0.001):
             # 进行傅里叶变换
@@ -577,6 +792,8 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         # 使用傅里叶去噪处理每个变量
         denoised_data = self.original_data.apply(lambda col: fourier_denoise(col , best_threshold))
         
+        old_data = self.original_data.copy()
+
         # 更新数据
         self.original_data = denoised_data
 
@@ -587,11 +804,30 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         # 将 denoised_data 转换回 pandas.Series，并保留原始索引
         #self.original_data = pd.Series(denoised_data, index=self.original_data.index)
 
-
-        #self.original_image.plotImage(x=self.original_data.index, y1=self.original_data.values, title="Denoised Data", legend1=self.y_label)
-        plot_muldata(self.fft_chart, self.original_data.index, y_data_dict, "FFT Data", self.x_label, self.y_label)
-
         
+        try:
+            plot_muldata(self.fft_chart, self.original_data.index, y_data_dict, "FFT Data", self.x_label, self.y_label)
+
+        finally:
+            # 绘图完成后隐藏提示
+            self.hide_loading_message()
+
+        # 生成简短的插值结果摘要
+        summary_before = old_data.describe()
+        summary_after = denoised_data.describe()
+
+#为了节约时间先把机器人交互部分注释掉
+        # #把插值处理的结果封装成气泡消息发送给聊天机器人
+        # message = f"数据进行了rolling去噪与傅里叶去噪处理完成，傅里叶去噪阈值为 {best_threshold}，\n去噪前数据摘要：\n{summary_before}\n去噪后数据摘要：\n{summary_after}，根据前后数据摘要对比分析去噪带来的影响。"
+
+        # curr_model = self.ui.comboBoxChatModel.currentText()
+
+        # response = chatbot(curr_model,message,self.dataField)
+
+        # #把聊天机器人的回复生成气泡消息
+        # bubble_message = BubbleMessage(response, self.iconChat, Type=MessageType.Text, is_send=False)
+        # self.chat_ui.add_message_item(bubble_message)
+
 
     def Stationarity_csv_data(self):
 
@@ -657,20 +893,20 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         adf_p_value_str = html.escape(f"{adf_p_value:.6f}")
         adf_ic_str = html.escape(f"{adf_ic:.4f}")
 
+
         # 在 textEditADF 中输出带颜色的 ADF 内容
         self.ui.textEditADF.setHtml(
-            "<h3 style='color: #1E90FF;'>=== ADF 检验结果 ===</h3>"
-            f"<p>检验统计量 (ADF Statistic): <b>{adf_statistic_str}</b></p>"
-            f"<p>p 值 (p-value): <b style='color: {'red' if adf_p_value > 0.05 else 'green'}'>{adf_p_value_str}</b></p>"
-            "<p>临界值 (Critical Values):</p>"
-            "<ul>"
+            "<h3 style='color: #1E90FF; font-family: 黑体;'>=== ADF 检验结果 ===</h3>"
+            f"<p style='font-family: 黑体;'>检验统计量 (ADF Statistic): <b>{adf_statistic_str}</b></p>"
+            f"<p style='font-family: 黑体;'>p 值 (p-value): <b style='color: {'red' if adf_p_value > 0.05 else 'green'}'>{adf_p_value_str}</b></p>"
+            "<p style='font-family: 黑体;'>临界值 (Critical Values):</p>"
+            "<ul style='font-family: 黑体;'>"
             + "".join(f"<li>{key}: <b>{value:.4f}</b></li>" for key, value in adf_critical_values.items()) +
             "</ul>"
-            f"<p>信息准则 (IC): <b>{adf_ic_str}</b></p>"
-            f"""<p>结论: <b style='color: {'red' if adf_p_value > 0.05 else 'green'}'>
-    {'数据不平稳' if adf_p_value > 0.05 else '数据平稳'}</b></p>"""
-
-            )
+            f"<p style='font-family: 黑体;'>信息准则 (IC): <b>{adf_ic_str}</b></p>"
+            f"""<p style='font-family: 黑体;'>结论: <b style='color: {'red' if adf_p_value > 0.05 else 'green'}'>
+        {'数据不平稳' if adf_p_value > 0.05 else '数据平稳'}</b></p>"""
+        )
 
         # KPSS检验
         kpss_result = kpss(retes, regression='c')
@@ -686,18 +922,17 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
 
         # 在 textEditKPSS 中输出带颜色的 KPSS 内容
         self.ui.textEditKPSS.setHtml(
-        "<h3 style='color: #1E90FF;'>=== KPSS 检验结果 ===</h3>"
-            f"<p>检验统计量 (ADF Statistic): <b>{kpss_statistic_str}</b></p>"
-            f"<p>p 值 (p-value): <b style='color: {'red' if kpss_p_value > 0.05 else 'green'}'>{kpss_p_value_str}</b></p>"
-            "<p>临界值 (Critical Values):</p>"
-            "<ul>"
-            + "".join(f"<li>{key}: <b>{value:.4f}</b></li>" for key, value in kpss_critical_values.items()) +
-            "</ul>"
-            f"<p>信息准则 (IC): <b>{adf_ic_str}</b></p>"
-            f"""<p>结论: <b style='color: {'red' if kpss_p_value > 0.05 else 'green'}'>
-    {'数据不平稳' if kpss_p_value > 0.05 else '数据平稳'}</b></p>"""
-
-            )
+        "<h3 style='color: #1E90FF; font-family: 黑体;'>=== KPSS 检验结果 ===</h3>"
+        f"<p style='font-family: 黑体;'>检验统计量 (KPSS Statistic): <b>{kpss_statistic_str}</b></p>"
+        f"<p style='font-family: 黑体;'>p 值 (p-value): <b style='color: {'red' if kpss_p_value > 0.05 else 'green'}'>{kpss_p_value_str}</b></p>"
+        "<p style='font-family: 黑体;'>临界值 (Critical Values):</p>"
+        "<ul style='font-family: 黑体;'>"
+        + "".join(f"<li>{key}: <b>{value:.4f}</b></li>" for key, value in kpss_critical_values.items()) +
+        "</ul>"
+        f"<p style='font-family: 黑体;'>信息准则 (IC): <b>{adf_ic_str}</b></p>"
+        f"""<p style='font-family: 黑体;'>结论: <b style='color: {'red' if kpss_p_value > 0.05 else 'green'}'>
+        {'数据不平稳' if kpss_p_value > 0.05 else '数据平稳'}</b></p>"""
+        )
 
 
         #self.plot_acf_data()
@@ -722,25 +957,20 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         self.pacf_canvas.plot_pacf(retes, lags=40)
         self.ui.widget_PACF.layout().addWidget(self.pacf_canvas)  # 添加到布局
 
-        # #绘制ACF图和PACF图
-        # plot_acf(self.ACF_chart,retes)
+#为了节约时间先把机器人交互部分注释掉
+        # acf_result = acf(retes, nlags=40, fft=True)
+        # pacf_result = pacf(retes, nlags=40)
 
-        # #在texteditADF中输出ADF的内容
-        # self.ui.textEditADF.setText(self.adf_text)
-        # #在texteditKPSS中输出KPSS的内容
-        # self.ui.textEditKPSS.setText(self.kpss_text)
+        # #封装ADF和KPSS的结果
+        # message = f'数据进行了ADF和KPSS检验，ADF检验结果：{adf_result}，KPSS检验结果：{kpss_result}，acf数据{acf_result}，pacf数据{pacf_result}。根据ADF和KPSS检验结果分析数据的平稳性,解释acf和pacf数据。'
 
-        #把KPSS内容进行输出
-        #SendMessage.set_return(self, self.iconChat, self.kpss_text,QtCore.Qt.LeftToRight)
+        # curr_model = self.ui.comboBoxChatModel.currentText()
+        # response = chatbot(curr_model,message,self.dataField)
 
-        # bubble_kpss = BubbleMessage(self.kpss_text, self.iconChat, Type=MessageType.Text, is_send=False)
-        # self.chat_ui.add_message_item(bubble_kpss)
 
-        # # 准备 y 数据字典
-        # y_data_dict = {column: self.original_data[column] for column in self.original_data.columns}
-
-        # plot_muldata(self.steady_chart, self.original_data.index, y_data_dict, "Denoised Data", self.x_label, self.y_label)
-
+        # #把聊天机器人的回复生成气泡消息
+        # bubble_message = BubbleMessage(response, self.iconChat, Type=MessageType.Text, is_send=False)
+        # self.chat_ui.add_message_item(bubble_message)
 
 
     ###############################################################
@@ -879,7 +1109,28 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
             print(f"错误: 时间序列分解失败 - {str(e)}")
 
 
+#为了节约时间先把机器人交互部分注释掉
+        # # 计算汇总统计信息
+        # trend_summary = stl_result.trend.describe()
+        # seasonal_summary = stl_result.seasonal.describe()
+        # residual_summary = stl_result.resid.describe()
 
+        # # 格式化为文本
+        # summary_text = (
+        #     f"=== STL 分解结果汇总 ===\n"
+        #     "趋势项 (Trend):\n" + trend_summary.to_string() + "\n\n"
+        #     "季节项 (Seasonal):\n" + seasonal_summary.to_string() + "\n\n"
+        #     "残差项 (Residual):\n" + residual_summary.to_string() + "\n"
+        #     '分析各项指标。'
+        # )
+
+        # curr_model = self.ui.comboBoxChatModel.currentText()
+        # response = chatbot(curr_model,summary_text,self.dataField)
+
+        # #把聊天机器人的回复生成气泡消息
+        # bubble_message = BubbleMessage(response, self.iconChat, Type=MessageType.Text, is_send=False)
+        # self.chat_ui.add_message_item(bubble_message)
+        
 
 
 
@@ -898,6 +1149,15 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         else:
             API_key = deepseek_api#随便传一个
 
+
+        # 显示"正在绘图中"提示，关联到chart
+        self.show_loading_message("正在绘图中...", self.predicted_chart_view)
+
+
+        # 强制界面更新
+        QtWidgets.QApplication.processEvents()
+
+
         # 获取预测长度
         predict_length = self.ui.plainTextEditLenth.toPlainText()
 
@@ -910,17 +1170,31 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         ChooseColumn = self.ui.comboBoxChoosecolumn.currentText()
 
 
-        # 获取当前列的原始数据和预测数据
-        origin_col_data = self.original_data[ChooseColumn]
-        predict_col_data = self.predicted_data[ChooseColumn]
+        origin_col_data = self.original_data
+        predict_col_data = self.predicted_data
+
+        # # 获取当前列的原始数据和预测数据
+        # origin_col_data = self.original_data[ChooseColumn]
+        # predict_col_data = self.predicted_data[ChooseColumn]
 
         #打印原始数据长度
         print("原始数据长度:",len(origin_col_data))
 
 #还需要实现各个模型的多变量预测数据载入与模型内部对接
 
-        # 获取预测结果
-        predict_result = get_predictions(Predict_model, API_key, origin_col_data, predict_col_data, self.hypers)
+        #如果选择的是arima模型则只需要传入一列数据
+        if Predict_model == 'ARIMA':
+            origin_col_data_uni = self.original_data[ChooseColumn]
+            predict_col_data_uni = self.predicted_data[ChooseColumn]
+
+            # 获取预测结果
+            predict_result = get_predictions(Predict_model,ChooseColumn, API_key, origin_col_data_uni, predict_col_data_uni, self.hypers)
+        else:
+
+            # 获取预测结果
+            predict_result = get_predictions(Predict_model, ChooseColumn,API_key, origin_col_data, predict_col_data, self.hypers)
+
+#如果choosecolumn=all，则对所有列进行预测
 
         # 检查 predict_result 的类型和内容
         print("Predict result type:", type(predict_result))
@@ -941,8 +1215,12 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         #origin_col_data丢掉最后pre_length个数据
         #origin_col_data = origin_col_data[:-pre_length]
 
+        # #把预测结果与原始数据对应列进行合并
+        origin_choose_series = origin_col_data[ChooseColumn]
+
+
         #y_data = pd.concat([origin_col_data, predict_result], axis=0)
-        y_data = pd.concat([origin_col_data, predict_result_series], axis=0)
+        y_data = pd.concat([origin_choose_series, predict_result_series], axis=0)
 
         #print("预测结果形状：",y_data.shape)
 
@@ -955,17 +1233,38 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         # #打印预测结果长度
         # print("预测结果长度:",len(self.predicted_data))
 
-        # 绘制预测结果
-        if isinstance(self.predicted_data, pd.DataFrame):
-    
-            #plot_predata(self.predicted_chart, self.predicted_data.index, y_data_dict, f"Predicted Data ({Predict_model})", self.x_label, self.y_label,pre_length)
-            plot_predata(self.predicted_chart, y_data.index, y_data, f"Predicted Data ({Predict_model})", self.x_label, self.y_label,pre_length)
-        
-        else:
-            # 单变量数据
-            plot_data(self.predicted_chart, self.predicted_data.index, self.predicted_data.values, f"Predicted Data ({Predict_model})", self.x_label, self.y_label)
+        #获取保存预测结果路径
+        self.savePath = self.ui.textEditSavePath.toPlainText()
 
+        
+        try:
+            # # 绘制预测结果
+            # if isinstance(self.predicted_data, pd.DataFrame):
+        
+                #plot_predata(self.predicted_chart, self.predicted_data.index, y_data_dict, f"Predicted Data ({Predict_model})", self.x_label, self.y_label,pre_length)
+            plot_predata(self.predicted_chart, y_data.index, y_data, f"Predicted Model:{Predict_model} Predicted Column: {ChooseColumn}", self.x_label, self.y_label,pre_length)
+        finally:
+            # 绘图完成后隐藏提示
+            self.hide_loading_message()  
+#节约时间先把机器人交互部分注释掉
+        # #把原始数据最后100个数据和预测数据输入到聊天机器人中
+        # message = f"原始数据最后100个数据：\n{origin_col_data[-100:]}\n预测数据：\n{predict_result},结合原始数据的趋势周期性等等内容对预测结果进行评价。"
+            
+        # curr_model = self.ui.comboBoxChatModel.currentText()
+        # response = chatbot(curr_model,message,self.dataField)
+
+        # #把聊天机器人的回复生成气泡消息
+        # bubble_message = BubbleMessage(response, self.iconChat, Type=MessageType.Text, is_send=False)
+        # self.chat_ui.add_message_item(bubble_message)
+        
         #print(f"Predicted Data ({Predict_model}):", self.predicted_data)
+
+
+
+
+
+
+
 
 
         # # 遍历 original_data 的每一列数据进行预测
@@ -1040,6 +1339,18 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
 
         # #print("更新的Predicted data:", self.predicted_data)
 
+    #把预测得到的结果保存到本地
+    def save_predicted_data(self):
+        #获取保存预测结果路径
+        self.savePath = self.ui.textEditSavePath.toPlainText()
+
+        #保存预测结果
+        if hasattr(self, 'predicted_data') and self.predicted_data is not None:
+            self.predicted_data.to_csv(self.savePath, index=True)
+            print(f"Predicted data saved to {self.savePath}")
+        else:
+            print("Predicted data is not available.")
+
 
     ###############################################################
     #以下是聊天部分
@@ -1058,7 +1369,7 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
 
         curr_model = self.ui.comboBoxChatModel.currentText()
     
-        response = chatbot(curr_model, current_text)
+        response = chatbot(curr_model, current_text,self.dataField)
 
 
         #把聊天机器人的回复生成气泡消息
@@ -1067,22 +1378,9 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         
         #发送之后清空文本框
         self.ui.plainTextEdit.clear()
-
-
-    # 回车绑定发送
-    # def Enter2Send(self):
-
-    #     # 这里通过文本框的是否可输入
-    #     if not self.ui.plainTextEdit.isEnabled():  
-    #         self.ui.plainTextEdit.setEnabled(True)
-    #         self.ui.plainTextEdit.setFocus()
-    #     else:
-    #         # 回车发送消息
-    #         self.ui.plainTextEdit.setFocus()
-    #         self.ui.pushButton_send.click()
         
 
-        
+    
     #创建气泡
     def create_bubble(self):
         self.text=self.ui.plainTextEdit.toPlainText()

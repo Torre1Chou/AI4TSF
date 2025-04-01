@@ -258,7 +258,7 @@ class ACFFigureCanvas(FigureCanvas):
         """
         self.ax.clear()  # 清空旧图
         plot_acf(data, ax=self.ax, lags=lags, color="#4C72B0")  # 使用柔和深蓝绘制 ACF 线条
-        self.ax.set_title(title, fontsize=14, color="#4C72B0")  # 标题颜色与线条一致
+        self.ax.set_title(title, fontsize=14, color="#4C72B0", fontfamily="SimHei")  # 标题颜色与线条一致
         self.ax.grid(True, linestyle="--", alpha=0.6, color="#8172B3")  # 网格线使用灰紫色
         self.ax.set_facecolor("#F5F5F5")  # 设置浅灰色背景
         self.draw()  # 重新渲染图像
@@ -272,7 +272,7 @@ class ACFFigureCanvas(FigureCanvas):
         """
         self.ax.clear()  # 清空旧图
         plot_pacf(data, ax=self.ax, lags=lags, color="#DD8452")  # 使用陶土橙绘制 PACF 线条
-        self.ax.set_title(title, fontsize=14, color="#DD8452")  # 标题颜色与线条一致
+        self.ax.set_title(title, fontsize=14, color="#DD8452", fontfamily="SimHei")  # 标题颜色与线条一致
         self.ax.grid(True, linestyle="--", alpha=0.6, color="#8172B3")  # 网格线使用灰紫色
         self.ax.set_facecolor("#F5F5F5")  # 设置浅灰色背景
         self.draw()  # 重新渲染图像
@@ -383,6 +383,11 @@ def plot_data(chart, x_data, y_data, title, x_label, y_label):
     chart.removeAllSeries()
     chart.addSeries(series)
     chart.createDefaultAxes()
+
+
+    # 设置标题字体为黑体
+    font = QFont("黑体", 16)  # 设置字体为黑体，大小为12
+    chart.setTitleFont(font)
     chart.setTitle(title)
 
     # 设置 x 轴为时间轴
@@ -477,6 +482,10 @@ def plot_muldata(chart, x_data, y_data_dict, title, x_label, y_label):
 
     # 创建默认的坐标轴
     chart.createDefaultAxes()
+
+    # 设置标题字体为黑体
+    font = QFont("黑体", 16)  # 设置字体为黑体，大小为12
+    chart.setTitleFont(font)
     chart.setTitle(title)
 
     # 设置 x 轴为时间轴
@@ -617,6 +626,10 @@ def plot_predata(chart, x_data, y_data, title, x_label, y_label, pred_length):
 
     # 创建默认的坐标轴
     chart.createDefaultAxes()
+
+    # 设置标题字体为黑体
+    font = QFont("黑体", 16)  # 设置字体为黑体，大小为12
+    chart.setTitleFont(font)
     chart.setTitle(title)
 
     # 设置 x 轴为时间轴

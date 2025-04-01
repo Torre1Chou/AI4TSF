@@ -31,15 +31,25 @@ import pandas as pd
 
     
 
-def get_Leddam_predictions_data(origin_data, predict_data, **kwargs):
+def get_Leddam_predictions_data(choosecolumn,origin_data, predict_data, **kwargs):
+
+
+
+    # # 确保 origin_data 是一个 DataFrame
+    # if isinstance(origin_data, list):
+    #     origin_data_csv = pd.DataFrame(origin_data).transpose()
 
     # 确保 origin_data 是一个 DataFrame
     if isinstance(origin_data, list):
-        origin_data_csv = pd.DataFrame(origin_data).transpose()
+        origin_data = pd.DataFrame(origin_data[0])  # 假设 origin_data 是一个三维列表，取第一个元素并转换为 DataFrame
+    elif isinstance(origin_data, np.ndarray):
+        origin_data = pd.DataFrame(origin_data[0])  # 假设 origin_data 是一个三维数组，取第一个元素并转换为 DataFrame
     
     # 确保 predict_data 是一个 DataFrame
     if isinstance(predict_data, list):
-        predict_data_csv = pd.DataFrame(predict_data).transpose()
+        predict_data = pd.DataFrame(predict_data[0])
+    elif isinstance(predict_data, np.ndarray):
+        predict_data = pd.DataFrame(predict_data[0])
 
     # # 确保 origin_data 的索引是日期时间索引
     # if not pd.api.types.is_datetime64_any_dtype(origin_data_csv.index):
@@ -50,37 +60,52 @@ def get_Leddam_predictions_data(origin_data, predict_data, **kwargs):
     # 把传入的origin_data生成为csv文件，保留索引
     origin_data_path = ('origin_data.csv')
 
+    origin_data.to_csv(origin_data_path, index_label='date')
+
+    # 重新读取 CSV 文件以确保列名称正确
+    origin_data_csv = pd.read_csv(origin_data_path, index_col='date', parse_dates=True)
+
+    # 打印 origin_data 的长度
+    print('origin_data 的长度:', len(origin_data_csv))
+    # 打印要预测的长度
+    pred_len = len(predict_data)
+    print('要预测的长度:', pred_len)
+
+
     # 填充 pred_len 数量的 0
     # 获取当前的索引
-    current_index = origin_data_csv.index
+    # current_index = origin_data_csv.index
 
-    pred_len = len(predict_data_csv)
 
-    # 生成新的索引，扩展 pred_len 个时间步
-    new_index = pd.date_range(start=current_index[0], 
-                            periods=len(current_index) + pred_len, 
-                            freq=current_index.freq)
+    # pred_len = len(predict_data)
 
-    # 使用 reindex 方法扩展 DataFrame，并填充新增行的值为 0
-    origin_data_csv = origin_data_csv.reindex(new_index)
+    # # 生成新的索引，扩展 pred_len 个时间步
+    # new_index = pd.date_range(start=current_index[0], 
+    #                         periods=len(current_index) + pred_len, 
+    #                         freq=current_index.freq)
 
-    # 使用线性插值填充新增的行
-    origin_data_csv = origin_data_csv.interpolate(method='linear')
+    # # 使用 reindex 方法扩展 DataFrame，并填充新增行的值为 0
+    # origin_data_csv = origin_data_csv.reindex(new_index)
 
-    #把传入的origin_data生成为csv文件
-    origin_data_csv.to_csv('origin_data.csv', index_label='date')
+    # # 使用线性插值填充新增的行
+    # origin_data_csv = origin_data_csv.interpolate(method='linear')
+
+    # #把传入的origin_data生成为csv文件
+    # origin_data_csv.to_csv('origin_data.csv', index_label='date')
 
 
 
     
 
-    # 重新读取 CSV 文件以确保列名称正确
-    origin_data_csv = pd.read_csv(origin_data_path, index_col='date', parse_dates=True)
+    # # 重新读取 CSV 文件以确保列名称正确
+    # origin_data_csv = pd.read_csv(origin_data_path, index_col='date', parse_dates=True)
 
-    #打印origin_data的长度
-    print('origin_data的长度:',len(origin_data_csv))
-    #打印要预测的长度
-    print('要预测的长度:',pred_len)
+    
+
+    # #打印origin_data的长度
+    # print('origin_data的长度:',len(origin_data_csv))
+    # #打印要预测的长度
+    # print('要预测的长度:',pred_len)
 
     
 
@@ -96,11 +121,13 @@ def get_Leddam_predictions_data(origin_data, predict_data, **kwargs):
     print('origin_data的列:',origin_data_csv.columns)
 
     #获取预测目标列
-    target_col = origin_data_csv.columns[0]
+    target_col = choosecolumn
+    print('target_col:',target_col)
 
     #根据传入的origin_data获取变量数量
     n_features = origin_data_csv.shape[1]
 
+    print('n_features:',n_features)
 
 
     fix_seed = 2021
@@ -128,7 +155,7 @@ def get_Leddam_predictions_data(origin_data, predict_data, **kwargs):
 
 
 #选择单多变量预测：M：多变量预测多变量，S：单变量预测单变量，MS：多变量预测单变量
-    parser.add_argument('--features', type=str, default='M',
+    parser.add_argument('--features', type=str, default='MS',
                         help='forecasting task, options:[M, S, MS]; M:multivariate predict multivariate, S:univariate predict univariate, MS:multivariate predict univariate')
     
 #预测目标列
@@ -245,7 +272,7 @@ def get_Leddam_predictions_data(origin_data, predict_data, **kwargs):
       'NLL/D': np.nan,  # 这里假设没有 NLL/D 的计算
       'samples': preds[target_col].tolist(),
       'median': preds[target_col].tolist(),
-      'info': {'Method': 'timeGPT', 'model': 'timegpt-1-long-horizon'}
+      'info': {'Method': 'Leddam', 'model': 'Leddam'}
    }
     
     return out_dict

@@ -39,15 +39,29 @@ class MessageType:
 #         window.ui.verticalLayout.addWidget(widget)
 
 #头像设置
+# class Avatar(QLabel):
+#     def __init__(self, avatar, parent=None):
+#         super().__init__(parent)
+#         if isinstance(avatar, str):
+#             self.setPixmap(QPixmap(avatar).scaled(45, 45))
+#             self.image_path = avatar
+#         elif isinstance(avatar, QPixmap):
+#             self.setPixmap(avatar.scaled(45, 45))
+#         self.setFixedSize(QSize(45, 45))
+
+# 头像设置
 class Avatar(QLabel):
     def __init__(self, avatar, parent=None):
         super().__init__(parent)
+        avatar_size = 45  # 头像大小
+        self.setScaledContents(True)  # 启用内容缩放
         if isinstance(avatar, str):
-            self.setPixmap(QPixmap(avatar).scaled(45, 45))
+            pixmap = QPixmap(avatar)
+            self.setPixmap(pixmap.scaled(avatar_size, avatar_size, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             self.image_path = avatar
         elif isinstance(avatar, QPixmap):
-            self.setPixmap(avatar.scaled(45, 45))
-        self.setFixedSize(QSize(45, 45))
+            self.setPixmap(avatar.scaled(avatar_size, avatar_size, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.setFixedSize(QSize(avatar_size, avatar_size))
 
 
 class OpenImageThread(QThread):
