@@ -30,5 +30,10 @@
     <file>res/minus.png</file>
     <file>res/confirm.png</file>
     <file>res/导入.png</file>
+    <file>res/1.png</file>
+    <file>res/界面.png</file>
+    <file>res/提示.png</file>
+    <file>res/填选购人.png</file>
+    <file>res/编辑.png</file>
   </qresource>
 </RCC>

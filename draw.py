@@ -13,35 +13,35 @@ from PyQt5.QtChart import QChart, QChartView, QLineSeries, QSplineSeries, QDateT
 
 mpl.use('Qt5Agg')
 
-class ForcastingFigure(FigureCanvas):
-    def __init__(self, parent=None):
-        self.fig = Figure(figsize=(6, 4))
-        super().__init__(self.fig)
+# class ForcastingFigure(FigureCanvas):
+#     def __init__(self, parent=None):
+#         self.fig = Figure(figsize=(6, 4))
+#         super().__init__(self.fig)
 
-    def plot_preds(self, train, test, pred_dict, model_name, show_samples=False):
-        pred = pred_dict['median']
-        pred = pd.Series(pred, index=test.index)
-        ax = self.figure.add_subplot(111)
-        self.figure.subplots_adjust(left=0.1, right=0.75)
-        ax.clear()
-        ax.plot(train)
-        ax.plot(pred, label=model_name, color='purple')
-        samples = pred_dict['samples']
-        lower = np.quantile(samples, 0.05, axis=0)
-        upper = np.quantile(samples, 0.95, axis=0)
-        ax.fill_between(pred.index, lower, upper, alpha=0.3, color='purple')
-        if show_samples:
-            samples = pred_dict['samples']
-            samples = samples.values if isinstance(samples, pd.DataFrame) else samples
-            for i in range(min(10, samples.shape[0])):
-                ax.plot(pred.index, samples[i], color='purple', alpha=0.3, linewidth=1)
-        ax.legend(bbox_to_anchor=(1, 1), loc=3, borderaxespad=0)
-        if 'NLL/D' in pred_dict:
-            nll = pred_dict['NLL/D']
-            if nll is not None:
-                ax.text(1.01, 0.85, f'NLL/D: {nll:.2f}', transform=ax.transAxes,
-                        bbox=dict(facecolor='white', alpha=0.5))
-        self.fig.canvas.draw()
+#     def plot_preds(self, train, test, pred_dict, model_name, show_samples=False):
+#         pred = pred_dict['median']
+#         pred = pd.Series(pred, index=test.index)
+#         ax = self.figure.add_subplot(111)
+#         self.figure.subplots_adjust(left=0.1, right=0.75)
+#         ax.clear()
+#         ax.plot(train)
+#         ax.plot(pred, label=model_name, color='purple')
+#         samples = pred_dict['samples']
+#         lower = np.quantile(samples, 0.05, axis=0)
+#         upper = np.quantile(samples, 0.95, axis=0)
+#         ax.fill_between(pred.index, lower, upper, alpha=0.3, color='purple')
+#         if show_samples:
+#             samples = pred_dict['samples']
+#             samples = samples.values if isinstance(samples, pd.DataFrame) else samples
+#             for i in range(min(10, samples.shape[0])):
+#                 ax.plot(pred.index, samples[i], color='purple', alpha=0.3, linewidth=1)
+#         ax.legend(bbox_to_anchor=(1, 1), loc=3, borderaxespad=0)
+#         if 'NLL/D' in pred_dict:
+#             nll = pred_dict['NLL/D']
+#             if nll is not None:
+#                 ax.text(1.01, 0.85, f'NLL/D: {nll:.2f}', transform=ax.transAxes,
+#                         bbox=dict(facecolor='white', alpha=0.5))
+#         self.fig.canvas.draw()
 
 class ImageFigures(FigureCanvas):
     def __init__(self, widget):
@@ -390,6 +390,10 @@ def plot_data(chart, x_data, y_data, title, x_label, y_label):
     chart.setTitleFont(font)
     chart.setTitle(title)
 
+    # 设置图例字体为黑体
+    legend_font = QFont("黑体", 12)  # 设置字体为黑体，大小为12
+    chart.legend().setFont(legend_font)
+
     # 设置 x 轴为时间轴
     axis_x = QDateTimeAxis()
     axis_x.setFormat("yyyy-MM-dd HH:mm:ss")
@@ -488,17 +492,25 @@ def plot_muldata(chart, x_data, y_data_dict, title, x_label, y_label):
     chart.setTitleFont(font)
     chart.setTitle(title)
 
+    # 设置图例字体为黑体
+    legend_font = QFont("黑体", 12)  # 设置字体为黑体，大小为12
+    chart.legend().setFont(legend_font)
+
     # 设置 x 轴为时间轴
     axis_x = QDateTimeAxis()
     axis_x.setFormat("yyyy-MM-dd HH:mm:ss")
     axis_x.setTitleText(x_label)
     axis_x.setGridLineVisible(True)  # 显示网格线
+    axis_x_font = QFont("黑体", 12)  # 设置字体为黑体，大小为12
+    axis_x.setTitleFont(axis_x_font)  # 设置 x 轴标题字体
     chart.setAxisX(axis_x)
 
     # 设置 y 轴
     axis_y = QValueAxis()
     axis_y.setTitleText(y_label)
     axis_y.setGridLineVisible(True)  # 显示网格线
+    axis_y_font = QFont("黑体", 12)  # 设置字体为黑体，大小为12
+    axis_y.setTitleFont(axis_y_font)  # 设置 y 轴标题字体
     chart.setAxisY(axis_y)
 
     # 确保每个系列都与轴正确关联
@@ -632,10 +644,16 @@ def plot_predata(chart, x_data, y_data, title, x_label, y_label, pred_length):
     chart.setTitleFont(font)
     chart.setTitle(title)
 
+    # 设置图例字体为黑体
+    legend_font = QFont("黑体", 12)  # 设置字体为黑体，大小为12
+    chart.legend().setFont(legend_font)
+
     # 设置 x 轴为时间轴
     axis_x = QDateTimeAxis()
     axis_x.setFormat("yyyy-MM-dd HH:mm:ss")
     axis_x.setTitleText(x_label)
+    axis_x_font = QFont("黑体", 12)  # 设置字体为黑体，大小为12
+    axis_x.setTitleFont(axis_x_font)  # 设置 x 轴标题字体
     axis_x.setGridLineVisible(True)  # 显示网格线
     chart.setAxisX(axis_x)
 
@@ -646,6 +664,8 @@ def plot_predata(chart, x_data, y_data, title, x_label, y_label, pred_length):
     # 设置 y 轴
     axis_y = QValueAxis()
     axis_y.setTitleText(y_label)
+    axis_y_font = QFont("黑体", 12)  # 设置字体为黑体，大小为12
+    axis_y.setTitleFont(axis_y_font)  # 设置 y 轴标题字体
     axis_y.setGridLineVisible(True)  # 显示网格线
     chart.setAxisY(axis_y)
 

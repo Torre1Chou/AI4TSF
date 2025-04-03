@@ -46,7 +46,7 @@ from chat.chatbot import chatbot,chatbot_file
 
 class LoadWINDOW(QMainWindow,Ui_MainWindow):
 
-    def __init__(self, parent=None):
+    def __init__(self, username = None,parent=None):
         super().__init__()
         self.ui=Ui_MainWindow()
         self.ui.setupUi(self)
@@ -59,6 +59,9 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         #设置窗口背景透明
         self.setAttribute(Qt.WA_TranslucentBackground)
 
+        #把label_user的文字设置为当前登录的用户名
+        if username:
+            self.ui.label_user.setText(f"(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧  欢迎 {username}！")
 
         #基础控件功能设置
         self.ui.pushButton_minus.clicked.connect(self.minusUI)
@@ -233,7 +236,7 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         self.savePath = ''
         
         #路径文本输入框显示默认路径
-        self.ui.textEditSavePath.setPlainText('D:/SaveCSV/predicted_data.csv')
+        self.ui.lineEditSavepath.setText('D:/SaveCSV/predicted_data.csv')
 
         #AI聊天部分
 
@@ -1234,7 +1237,7 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
         # print("预测结果长度:",len(self.predicted_data))
 
         #获取保存预测结果路径
-        self.savePath = self.ui.textEditSavePath.toPlainText()
+        self.savePath = self.ui.lineEditSavepath.toPlainText()
 
         
         try:
@@ -1342,7 +1345,7 @@ class LoadWINDOW(QMainWindow,Ui_MainWindow):
     #把预测得到的结果保存到本地
     def save_predicted_data(self):
         #获取保存预测结果路径
-        self.savePath = self.ui.textEditSavePath.toPlainText()
+        self.savePath = self.ui.lineEditSavepath.toPlainText()
 
         #保存预测结果
         if hasattr(self, 'predicted_data') and self.predicted_data is not None:
